@@ -501,8 +501,7 @@ def show_peer_group():
 
     st.markdown(
         '<div class="callout-yellow"><strong>Next peer group review:</strong> A new peer group '
-        "will be approved by RemCo at the <strong>June 2026</strong> meeting for future awards. "
-        "Additions apply on a forward-looking basis only.</div>",
+        'will be approved by RemCo at the <strong>June 2026</strong> meeting.</div>',
         unsafe_allow_html=True,
     )
 
@@ -613,7 +612,7 @@ def show_malus_clawback():
 # Section: Historic Performance
 # ---------------------------------------------------------------------------
 def show_historic_performance():
-    st.markdown("# Historic Performance")
+    st.markdown("# PSU Performance Over Time")
     st.markdown(
         "Aggregated PSU grant history across all financial years. Individual award details "
         "are disclosed in the annual Remuneration Report."
@@ -783,8 +782,7 @@ def show_sidebar():
         "🌍 Peer group",
         "👥 Eligibility",
         "⚖️ Malus & clawback",
-        "📅 Historic Performance",
-        "💰 Value creation",
+        "📅 PSU Performance Over Time",
     ]
     section = st.sidebar.radio("", sections, label_visibility="collapsed")
 
@@ -833,10 +831,8 @@ def main():
         show_eligibility()
     elif "Malus" in section:
         show_malus_clawback()
-    elif "Historic" in section:
+    elif "PSU Performance" in section:
         show_historic_performance()
-    elif "Value creation" in section:
-        show_value_creation()
 
 
 if __name__ == "__main__":
