@@ -24,10 +24,10 @@ credentials = {
 }
 
 authenticator = stauth.Authenticate(
-    credentials=credentials,
-    cookie_name="psu_onboarding",
-    cookie_key="psu-cookie-26",
-    cookie_expiry_days=1,
+    credentials,
+    "psu_onboarding",
+    "prosus_psu_secret_2026",
+    1,
 )
 
 # ---------------------------------------------------------------------------
