@@ -1,40 +1,30 @@
 """
-Prosus PSU Board Onboarding Dashboard
-Streamlit app with bcrypt authentication — ready for Streamlit Community Cloud deployment
+Prosus PSU Onboarding Dashboard
+Streamlit app with email whitelist authentication
 """
 
-import bcrypt
 import streamlit as st
 import pandas as pd
-import streamlit_authenticator as stauth
+import os
 
 # ---------------------------------------------------------------------------
-# Authentication setup — generate hash at import time
+# Authentication setup — email whitelist
 # ---------------------------------------------------------------------------
-_raw_password = "Prosus2026!"
-_hashed = bcrypt.hashpw(_raw_password.encode(), bcrypt.gensalt()).decode()
+def load_whitelist():
+    """Load allowed email addresses from users.txt"""
+    whitelist_path = os.path.join(os.path.dirname(__file__), "users.txt")
+    if os.path.exists(whitelist_path):
+        with open(whitelist_path) as f:
+            return [line.strip() for line in f if line.strip()]
+    return []
 
-credentials = {
-    "usernames": {
-        "board_member": {
-            "name": "Board Member",
-            "password": _hashed,
-        }
-    }
-}
-
-authenticator = stauth.Authenticate(
-    credentials,
-    "psu_onboarding",
-    "prosus_psu_secret_2026",
-    1,
-)
+ALLOWED_EMAILS = load_whitelist()
 
 # ---------------------------------------------------------------------------
 # Page config — must be FIRST Streamlit call
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Prosus | PSU Board Onboarding",
+    page_title="Prosus | PSU Onboarding",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -74,6 +64,20 @@ header {visibility: hidden;}
 }
 [data-testid="stSidebar"] * {
     color: white !important;
+}
+
+/* Logout button styling */
+[data-testid="stSidebar"] .stButton > button {
+    background-color: #00D3AF !important;
+    color: #081A54 !important;
+    border: none !important;
+    font-weight: bold !important;
+    border-radius: 6px !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background-color: #00B89A !important;
+    color: #081A54 !important;
 }
 
 /* Card styling */
@@ -141,7 +145,7 @@ header {visibility: hidden;}
 }
 
 /* Table styling */
-.styled-table { width:100%; border-collapse:collapse; font-size:13px; }
+.styled-table { width:100%; border-collapse:collapse; font-size:14px; }
 .styled-table th { background:#081A54; color:white; padding:8px 12px; text-align:left; }
 .styled-table td { padding:7px 12px; border-bottom:1px solid #E8E8E8; }
 .styled-table tr:nth-child(even) { background:#F4F5F7; }
@@ -154,7 +158,7 @@ header {visibility: hidden;}
 # ---------------------------------------------------------------------------
 def show_what_are_psus():
     st.markdown("# What are PSUs?")
-    st.caption("A primer for new board members")
+    st.caption("A primer for new participants")
     st.markdown("")
 
     col1, col2 = st.columns(2)
@@ -191,8 +195,8 @@ def show_what_are_psus():
             group threshold for any shares to vest</li>
             <li><strong>Discourage short-termism</strong> — cliff vesting over 3–4 years with no
             interim liquidity</li>
-            <li><strong>Protect shareholders</strong> — the absolute underpin (Phase 3) means awards
-            lapse entirely if Group TSR is negative</li>
+            <li><strong>Protect shareholders</strong> — the absolute underpin (post-CEO appointment)
+            means awards lapse entirely if Group TSR is negative</li>
             <li><strong>Accountability</strong> — malus and clawback provisions apply for serious
             misconduct</li>
             </ul>
@@ -204,9 +208,8 @@ def show_what_are_psus():
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
         '<div class="callout-blue">PSU awards are personal and non-transferable. They do not form '
-        "part of the recipient's employment contract. RemCo (the Human Resources &amp; "
-        "Remuneration Committee) has full discretion over the administration and determination "
-        "of awards.</div>",
+        "part of the recipient's employment contract. RemCo has full discretion over the "
+        "administration and determination of awards.</div>",
         unsafe_allow_html=True,
     )
 
@@ -217,137 +220,73 @@ def show_what_are_psus():
 def show_types_of_psus():
     st.markdown("# Types of PSUs")
     st.markdown(
-        "Prosus has operated three successive phases of PSU design, each reflecting the "
+        "Prosus has operated three successive designs of PSU, each reflecting the "
         "Group's evolving strategy and listing structure."
     )
     st.markdown("")
 
-    # Phase 1
-    with st.expander("📊 Phase 1 — Ecommerce CAGR (Naspers)  |  Pre-Prosus listing · FY20–FY22"):
-        phase1_data = {
-            "Design element": [
-                "Plan",
-                "Settlement",
-                "Performance measure",
-                "Measurement period",
-                "Vesting",
-                "Threshold",
-                "Target",
-                "Maximum",
-                "Absolute underpin",
-                "Malus",
-                "Clawback",
-                "Recipients",
-            ],
-            "Detail": [
-                "Naspers Restricted Stock Plan Trust",
-                "Naspers Class N ordinary shares",
-                "3-year CAGR of the Naspers Global Ecommerce SAR valuation "
-                "(group assets excluding Tencent) compared against a peer group",
-                "3 years",
-                "100% cliff vest on the 3rd anniversary of grant date",
-                "25th percentile → 50% of PSUs vest",
-                "50th percentile → 100% of PSUs vest",
-                "75th percentile → 200% of PSUs vest (capped)",
-                "None",
-                "Not applicable",
-                "2 years post-vest",
-                "All eligible executives",
-            ],
-        }
-        df1 = pd.DataFrame(phase1_data)
-        st.dataframe(df1, hide_index=True, use_container_width=True)
+    def html_table(rows):
+        header = "<thead><tr><th>Design element</th><th>Detail</th></tr></thead>"
+        body_rows = "".join(f"<tr><td>{r[0]}</td><td>{r[1]}</td></tr>" for r in rows)
+        return f'<table class="styled-table">{header}<tbody>{body_rows}</tbody></table>'
+
+    # Ecommerce CAGR — merged pre- and post-Prosus listing
+    with st.expander("📊 Ecommerce CAGR | Pre- & post-Prosus listing · FY20–FY24"):
+        # Merged 3-column table matching PPTX v7
+        merged_html = """
+<table class="styled-table">
+  <thead>
+    <tr>
+      <th>Design element</th>
+      <th>Ecommerce CAGR</th>
+      <th>Group TSR (current)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td style="font-weight:bold">Plan</td><td>Naspers RSP Trust / Prosus Share Award Plan</td><td>Naspers RSP Trust & Prosus Share Award Plan</td></tr>
+    <tr><td style="font-weight:bold">Settlement</td><td>Naspers Class N shares / Prosus Class N shares</td><td>Combination of Naspers and Prosus Class N shares</td></tr>
+    <tr><td style="font-weight:bold">Performance measure</td><td>3-year Ecommerce CAGR of portfolio (ex-Tencent) vs peer group</td><td>Group TSR (Naspers + Prosus combined) vs peer group</td></tr>
+    <tr><td style="font-weight:bold">Measurement period</td><td>3 years</td><td>4 years (extendable to 5 if peer avg TSR ≤ −10%)</td></tr>
+    <tr><td style="font-weight:bold">Vesting*</td><td>100% cliff vest — 3rd anniversary</td><td>100% cliff vest — 4th anniversary</td></tr>
+    <tr><td style="font-weight:bold">Absolute underpin</td><td>None</td><td>YES — lapses if Group TSR is negative</td></tr>
+    <tr><td style="font-weight:bold">Malus</td><td>No (pre-Prosus listing) / Yes (post-Prosus listing)</td><td>Yes</td></tr>
+    <tr><td style="font-weight:bold">Clawback</td><td>2 years post-vest</td><td>2 years post-vest</td></tr>
+    <tr><td style="font-weight:bold">Peer group</td><td>~21 companies (pre-Prosus listing) / ~23 companies (post-Prosus listing)</td><td>~49 companies</td></tr>
+    <tr><td style="font-weight:bold">Recipients</td><td>All eligible executives</td><td>CEO (FY25); CFO (FY26 onwards)</td></tr>  </tbody>
+</table>
+<p style="font-size:12px;color:#808080;font-style:italic;margin-top:8px;">* See 'How performance is measured' for the full vesting payout schedule.</p>
+"""
+        st.markdown(merged_html, unsafe_allow_html=True)
         st.markdown(
-            '<div class="callout-blue">The Ecommerce measure captured the performance of '
-            "Naspers's portfolio companies (excluding Tencent). This was an internal CAGR "
-            "measure, not a direct market TSR.</div>",
+            '<div class="callout-blue">The Ecommerce CAGR plan ran in two sub-periods: '
+            'pre-Prosus listing (Naspers RSP Trust, ~21 peers) and post-Prosus listing '
+            '(Prosus SAP, ~23 peers). The core design was identical. See Types of PSUs for full '
+            'design element comparison.</div>',
             unsafe_allow_html=True,
         )
 
-    # Phase 2
+        # Group TSR — post-CEO appointment (current)
     with st.expander(
-        "📊 Phase 2 — Ecommerce CAGR (Prosus)  |  Post-Prosus listing · FY22–FY24"
+        "📊 Group TSR | Post-CEO appointment · FY25 onwards ⭐ CURRENT", expanded=True
     ):
-        phase2_data = {
-            "Design element": [
-                "Plan",
-                "Settlement",
-                "Performance measure",
-                "Measurement period",
-                "Vesting",
-                "Threshold",
-                "Target",
-                "Maximum",
-                "Absolute underpin",
-                "Malus",
-                "Clawback",
-                "Recipients",
-            ],
-            "Detail": [
-                "Naspers RSP Trust / Prosus Share Award Plan (dual-listed)",
-                "Naspers Class N ordinary shares OR Prosus ordinary shares",
-                "3-year CAGR of the Ecommerce SAR valuation of the combined "
-                "Naspers + Prosus group compared against an expanded peer group",
-                "3 years",
-                "100% cliff vest on the 3rd anniversary of grant date",
-                "25th percentile → 50% of PSUs vest",
-                "50th percentile → 100% of PSUs vest",
-                "75th percentile → 200% of PSUs vest (capped)",
-                "None",
-                "Introduced — formal malus provisions added",
-                "2 years post-vest",
-                "All eligible executives",
-            ],
-        }
-        df2 = pd.DataFrame(phase2_data)
-        st.dataframe(df2, hide_index=True, use_container_width=True)
+        rows3 = [
+            ("Plan", "Naspers RSP Trust / Prosus Share Award Plan"),
+            ("Settlement", "Naspers Class N ordinary shares OR Prosus ordinary shares"),
+            ("Performance measure", "Group TSR (Total Shareholder Return) of the combined Naspers + Prosus group "
+             "vs an expanded peer group of ~43 global tech/internet companies"),
+            ("Measurement period", "4 years (extended from 3 years in the earlier Ecommerce CAGR periods)"),
+            ("Vesting", "100% cliff vest on the 4th anniversary of grant date"),
+            ("Threshold", "30th percentile → 50% of PSUs vest (raised from 25th in the earlier Ecommerce CAGR periods)"),
+            ("Target", "50th percentile → 100% of PSUs vest"),
+            ("Maximum", "75th percentile → 200% of PSUs vest (capped)"),
+            ("Absolute underpin", "New: Award lapses entirely if Group TSR is negative over the period"),
+            ("Malus", "Yes — applicable from grant date"),
+            ("Clawback", "2 years post-vest"),
+            ("Recipients", "CEO (FY25); CFO (FY26+)"),
+        ]
+        st.markdown(html_table(rows3), unsafe_allow_html=True)
         st.markdown(
-            '<div class="callout-blue">Following the September 2019 Prosus listing on Euronext '
-            "Amsterdam, Phase 2 introduced dual-settlement (Naspers or Prosus shares) and an "
-            "expanded peer group to include Prosus-listed comparable companies. Formal malus "
-            "provisions were also introduced in this phase.</div>",
-            unsafe_allow_html=True,
-        )
-
-    # Phase 3 — expanded=True
-    with st.expander(
-        "📊 Phase 3 — Group TSR  |  FY25 onwards  ⭐ CURRENT", expanded=True
-    ):
-        phase3_data = {
-            "Design element": [
-                "Plan",
-                "Settlement",
-                "Performance measure",
-                "Measurement period",
-                "Vesting",
-                "Threshold",
-                "Target",
-                "Maximum",
-                "Absolute underpin",
-                "Malus",
-                "Clawback",
-                "Recipients",
-            ],
-            "Detail": [
-                "Naspers RSP Trust / Prosus Share Award Plan",
-                "Naspers Class N ordinary shares OR Prosus ordinary shares",
-                "Group TSR (Total Shareholder Return) of the combined Naspers + Prosus group "
-                "vs an expanded peer group of ~49 global tech/internet companies",
-                "4 years (extended from 3 years in Phase 1 & 2)",
-                "100% cliff vest on the 4th anniversary of grant date",
-                "30th percentile → 50% of PSUs vest (raised from 25th in Phases 1 & 2)",
-                "50th percentile → 100% of PSUs vest",
-                "75th percentile → 200% of PSUs vest (capped)",
-                "New: Award lapses entirely if Group TSR is negative over the period",
-                "Yes — applicable from grant date",
-                "2 years post-vest",
-                "CEO (FY25); CFO (FY26+)",
-            ],
-        }
-        df3 = pd.DataFrame(phase3_data)
-        st.dataframe(df3, hide_index=True, use_container_width=True)
-        st.markdown(
-            '<div class="callout-yellow">Three significant changes from Phase 1 &amp; 2: '
+            '<div class="callout-yellow">Three significant changes from the earlier Ecommerce CAGR periods: '
             "(1) Measure shifted from Ecommerce CAGR to <strong>Group TSR</strong> — now "
             "includes Tencent; (2) Vesting extended from <strong>3 to 4 years</strong>; "
             "(3) New <strong>absolute underpin</strong> — award lapses if Group TSR is "
@@ -412,157 +351,57 @@ def show_how_performance_measured():
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Vesting payout schedule")
 
-    vesting_data = {
-        "Percentile rank vs peers": [
-            "Below 25th percentile",
-            "25th–29th percentile",
-            "30th percentile (Phase 3 threshold)",
-            "30th–49th percentile",
-            "50th percentile — Target",
-            "50th–74th percentile",
-            "75th percentile — Maximum",
-            "Above 75th percentile",
-            "⚠ Absolute underpin (Phase 3 only)",
-        ],
-        "Phase 1 & 2 vest %": [
-            "0%",
-            "50%–~74%",
-            "~75%",
-            "Linear 50%→100%",
-            "100%",
-            "Linear 100%→200%",
-            "200%",
-            "200%",
-            "None",
-        ],
-        "Phase 3 vest %": [
-            "—",
-            "0%",
-            "50%",
-            "Linear 50%→100%",
-            "100%",
-            "Linear 100%→200%",
-            "200%",
-            "200%",
-            "Lapses if Group TSR < 0%",
-        ],
-        "Notes": [
-            "Nothing vests — below Phase 1 & 2 threshold",
-            "Phase 3 threshold higher at 30th percentile",
-            "Phase 3 minimum vesting point",
-            "Linear interpolation between threshold and target",
-            "On-plan / target outcome",
-            "Linear interpolation between target and maximum",
-            "Cap — no further upside",
-            "Capped at maximum",
-            "Phase 3: negative TSR = full forfeiture regardless of ranking",
-        ],
-    }
-    df_vest = pd.DataFrame(vesting_data)
-    st.dataframe(df_vest, hide_index=True, use_container_width=True, height=370)
+    vesting_table_html = """
+<table class="styled-table">
+  <thead>
+    <tr>
+      <th>Performance Level</th>
+      <th>Percentile Rank</th>
+      <th>Shares Vesting</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Below Threshold</td>
+      <td>Below 25th percentile (Ecommerce CAGR) / Below 30th percentile (TSR PSUs)</td>
+      <td>No shares vest</td>
+    </tr>
+    <tr>
+      <td>Threshold</td>
+      <td>25th percentile (Ecommerce CAGR) / 30th percentile (TSR PSUs)</td>
+      <td>50% of awarded shares vest</td>
+    </tr>
+    <tr>
+      <td>Target</td>
+      <td>50th percentile (median)</td>
+      <td>100% of awarded shares vest</td>
+    </tr>
+    <tr>
+      <td>Maximum</td>
+      <td>75th percentile</td>
+      <td>200% of awarded shares vest</td>
+    </tr>
+  </tbody>
+</table>
+"""
+    st.markdown(vesting_table_html, unsafe_allow_html=True)
 
     st.markdown(
-        '<div class="callout-blue">RemCo makes the final determination — typically at the '
-        "June RemCo meeting after the measurement period ends.</div>",
+        '<div class="callout-blue">'
+        "Performance between threshold and maximum is interpolated on a straight-line (linear) basis.<br>"
+        "Below threshold, no shares vest. Above the 75th percentile, the payout does not increase beyond 200%.<br><br>"
+        "See <strong>Types of PSUs</strong> for full design element comparison."
+        "</div>",
         unsafe_allow_html=True,
     )
 
-
-# ---------------------------------------------------------------------------
-# Section: Eligibility & current awards
-# ---------------------------------------------------------------------------
-def show_eligibility():
-    st.markdown("# Eligibility & current awards")
     st.markdown(
-        "Eligibility for PSU awards is determined by RemCo and disclosed in the annual "
-        "Remuneration Report. Awards are personal and non-transferable."
+        '<div class="callout-red">'
+        "<strong>TSR PSU absolute underpin:</strong> if Group TSR is negative over the measurement period, "
+        "the award lapses in full — regardless of peer ranking."
+        "</div>",
+        unsafe_allow_html=True,
     )
-    st.markdown("")
-
-    with st.expander("👤 Who is eligible?", expanded=True):
-        st.markdown(
-            """
-            **Phase 1 & 2 (FY20–FY24):** All eligible executives received PSU awards.
-
-            **Phase 3 — FY25:** CEO and other designated executives received awards.
-
-            **Phase 3 — FY26 onwards:** Only the **CFO** — a combination of Naspers TSR PSUs
-            and Prosus TSR PSUs. The CEO (Fabricio Bloisi) participates via a separate
-            long-term incentive structure approved by RemCo.
-
-            RemCo reviews eligibility annually and may add or remove participants at its discretion.
-            """
-        )
-
-    with st.expander("📋 FY25 awards — currently in flight", expanded=True):
-        awards_data = {
-            "Recipient": ["Fabricio Bloisi (CEO)", "Fabricio Bloisi (CEO)", "CFO"],
-            "Plan": [
-                "Naspers RSP Trust",
-                "Prosus Share Award Plan",
-                "Naspers RSP Trust + Prosus SAP",
-            ],
-            "Grant date": ["1 July 2024", "1 July 2024", "FY26"],
-            "PSUs granted": ["32,662", "430,295", "See award letter"],
-            "Grant fair value": ["US$8.1m", "US$18.9m", "Confidential"],
-            "Measurement period": [
-                "1 Jul 2024 – 30 Jun 2028",
-                "1 Jul 2024 – 30 Jun 2028",
-                "FY26 period",
-            ],
-        }
-        df_awards = pd.DataFrame(awards_data)
-        st.dataframe(df_awards, hide_index=True, use_container_width=True)
-        st.markdown(
-            '<div class="callout-yellow"><strong>Market shock protection:</strong> If the peer '
-            "group average TSR is ≤ −10% over the measurement period, the measurement period "
-            "extends by one year (to 30 June 2029 for FY25 awards). This protects against "
-            "broad market downturns distorting the relative ranking.</div>",
-            unsafe_allow_html=True,
-        )
-
-    with st.expander(
-        "📁 Historical reference awards (Ecommerce CAGR phase)", expanded=False
-    ):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(
-                """
-                <div class="info-card card-blue">
-                <h4 style="color:#0332AF">David Tudor — Naspers RSP Trust</h4>
-                <ul>
-                <li><strong>Grant date:</strong> FY22</li>
-                <li><strong>Plan:</strong> Naspers RSP Trust</li>
-                <li><strong>Measure:</strong> Ecommerce CAGR vs peer group</li>
-                <li><strong>Vesting:</strong> 3-year cliff vest</li>
-                <li><strong>Status:</strong> Vested / lapsed per RemCo determination</li>
-                </ul>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with col2:
-            st.markdown(
-                """
-                <div class="info-card card-teal">
-                <h4 style="color:#00D3AF">David Tudor — Prosus SAP</h4>
-                <ul>
-                <li><strong>Grant date:</strong> FY22</li>
-                <li><strong>Plan:</strong> Prosus Share Award Plan</li>
-                <li><strong>Measure:</strong> Ecommerce CAGR vs peer group</li>
-                <li><strong>Vesting:</strong> 3-year cliff vest</li>
-                <li><strong>Status:</strong> Vested / lapsed per RemCo determination</li>
-                </ul>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        st.markdown(
-            '<div class="callout-grey">Historical vesting outcomes are reported in the '
-            "Prosus Annual Report and Remuneration Report, available at "
-            "prosus.com/investors.</div>",
-            unsafe_allow_html=True,
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -576,76 +415,40 @@ def show_peer_group():
     )
     st.markdown("")
 
-    with st.expander("⚖️ Governance rules", expanded=True):
-        st.markdown(
-            """
-            1. **Approved by RemCo** at the start of each measurement period — not changed mid-cycle
-            2. **Global technology and internet companies** with broadly comparable business models
-            3. **Minimum market capitalisation** threshold applies (typically US$5bn+)
-            4. **Delisted or acquired companies** are removed; a replacement may be added at RemCo discretion
-            5. **No Prosus/Naspers cross-holding** — companies with significant Prosus/Naspers holdings are excluded
-            6. **Survivorship rule** — if a peer is acquired during the period, it is treated as if it ranked at the 75th percentile at time of acquisition
-            7. **TSR calculation** uses 31-day trailing VWAP at start and end of the measurement period, in USD
-            """
-        )
+    st.markdown(
+        """
+**Key governance rules:**
+- Approved by RemCo at the start of each measurement period — not changed mid-cycle
+- Global technology and internet companies with broadly comparable business models
+- Minimum market capitalisation threshold applies (typically US$5bn+)
+- Delisted or acquired companies are removed; a replacement may be added at RemCo discretion
+- TSR calculation uses 31-day trailing VWAP at start and end of the measurement period, in USD
+"""
+    )
 
-    with st.expander("📊 Phase 1 peers — ~21 companies (FY20–FY22)", expanded=False):
-        st.caption("Naspers Ecommerce CAGR benchmark group")
-        companies_p1 = [
-            "Adyen", "Alphabet", "Amazon", "Booking Holdings", "Delivery Hero",
-            "eBay", "Expedia", "Facebook (Meta)", "Flipkart", "JD.com",
-            "MercadoLibre", "Netflix", "OLX", "PayPal", "Rakuten",
-            "Sea Limited", "Shopify", "Spotify", "Tencent", "Trip.com",
-            "Zalando",
+    # FY26 current peer group only
+    with st.expander("📊 FY26 TSR peer group — 43 companies (current)", expanded=True):
+        st.caption(
+            "Group TSR benchmark group — global technology, internet and ecommerce peers "
+            "approved by RemCo for the post-CEO appointment period."
+        )
+        companies_fy26 = [
+            "Adyen", "LY Corporation", "Airbnb", "Match Group", "Alphabet",
+            "MercadoLibre", "Amazon", "Meta Platforms", "Auto Trader", "Ocado Group",
+            "Bajaj Finance", "One97 Communications (Paytm)", "Block", "PayPal",
+            "Booking Holdings", "Pinterest", "Chewy", "Rakuten Group", "Coupang",
+            "Sea Limited", "Deliveroo", "Shopify", "DoorDash", "Snap", "eBay",
+            "Uber", "Etsy", "Wayfair", "Expedia Group", "Zalando",
+            "FSN Ecommerce (Nykaa)", "Zillow Group", "IAC", "Zomato", "Grab",
+            "Ocado", "Just Eat Takeaway", "Chewy", "FSN Ecommerce",
+            "Zillow", "Auto Trader", "Bajaj Finance", "Pinterest",
         ]
-        chips_html = " ".join(f'<span class="chip">{c}</span>' for c in companies_p1)
+        chips_html = " ".join(f'<span class="chip">{c}</span>' for c in companies_fy26)
         st.markdown(chips_html, unsafe_allow_html=True)
-
-    with st.expander("📊 Phase 2 peers — ~23 companies (FY22–FY24)", expanded=False):
-        st.caption(
-            "Prosus Ecommerce CAGR benchmark group. "
-            '<span class="chip-new" style="background:#00D3AF;color:#081A54;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;">NEW</span> = added vs Phase 1',
-            unsafe_allow_html=True,
-        )
-        existing_p2 = [
-            "Adyen", "Alphabet", "Amazon", "Booking Holdings",
-            "eBay", "Expedia", "Facebook (Meta)", "JD.com",
-            "MercadoLibre", "Netflix", "PayPal", "Rakuten",
-            "Sea Limited", "Shopify", "Spotify", "Tencent",
-            "Trip.com", "Zalando",
-        ]
-        new_p2 = ["Adevinta", "Deliveroo", "DoorDash", "Just Eat Takeaway", "Square (Block)"]
-        existing_chips = " ".join(f'<span class="chip">{c}</span>' for c in existing_p2)
-        new_chips = " ".join(f'<span class="chip chip-new">{c} ✦</span>' for c in new_p2)
-        st.markdown(existing_chips + " " + new_chips, unsafe_allow_html=True)
-
-    with st.expander(
-        "📊 Phase 3 peers — ~49 companies (FY25+, current)", expanded=False
-    ):
-        st.caption(
-            "Group TSR benchmark group — significantly expanded to include Tencent-adjacent "
-            "and global internet peers, reflecting the Group TSR measure."
-        )
-        companies_p3 = [
-            "Adyen", "Airbnb", "Alibaba", "Alphabet", "Amazon",
-            "Baidu", "Booking Holdings", "ByteDance (private — excluded if unlisted)",
-            "Coupang", "DoorDash", "eBay", "Etsy", "Expedia",
-            "Facebook (Meta)", "Grab", "IACI", "JD.com", "Just Eat Takeaway",
-            "Kakao", "Kuaishou", "Lazada (Alibaba sub)", "Line", "MercadoLibre",
-            "Microsoft", "Meituan", "Netflix", "Naver", "PayPal",
-            "Pinduoduo (PDD)", "Rakuten", "Roblox", "Sea Limited", "Shopify",
-            "Snap", "Spotify", "Square (Block)", "Tencent", "TikTok (ByteDance)",
-            "Toast", "Trip.com", "Twitter (X)", "Uber", "Vinted",
-            "Wayfair", "Wise", "Zalando", "Zomato", "Zynga",
-            "iQIYI",
-        ]
-        chips_html_p3 = " ".join(f'<span class="chip">{c}</span>' for c in companies_p3)
-        st.markdown(chips_html_p3, unsafe_allow_html=True)
         st.markdown(
-            '<div class="callout-blue">The Phase 3 group was significantly expanded '
-            "(from ~23 to ~49 companies) to reflect the shift to Group TSR, which now "
-            "includes Tencent and the full Prosus portfolio. A broader peer group provides "
-            "a more robust relative ranking.</div>",
+            '<div class="callout-blue">The FY26 peer group reflects the shift to Group TSR '
+            "and includes global internet, ecommerce and fintech peers. RemCo approves the "
+            "peer group at the start of each measurement period.</div>",
             unsafe_allow_html=True,
         )
 
@@ -655,6 +458,31 @@ def show_peer_group():
         "Additions apply on a forward-looking basis only.</div>",
         unsafe_allow_html=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# Section: Eligibility
+# ---------------------------------------------------------------------------
+def show_eligibility():
+    st.markdown("# Eligibility")
+    st.markdown(
+        "Eligibility for PSU awards is determined by RemCo and disclosed in the annual "
+        "Remuneration Report. Awards are personal and non-transferable."
+    )
+    st.markdown("")
+
+    with st.expander("👤 Who is eligible?", expanded=True):
+        st.markdown(
+            """
+**Pre-CEO appointment (Ecommerce CAGR period, FY20–FY24):**
+Awards were granted to the CEO, CFO, and all other ELT (Executive Leadership Team) members.
+
+**Post-CEO appointment (Group TSR period, FY25 onwards):**
+Awards are granted to the CEO and CFO only.
+
+RemCo reviews eligibility annually and may adjust at its discretion. Awards are personal and non-transferable.
+"""
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -735,6 +563,134 @@ def show_malus_clawback():
 
 
 # ---------------------------------------------------------------------------
+# Section: Historic Performance
+# ---------------------------------------------------------------------------
+def show_historic_performance():
+    st.markdown("# Historic Performance")
+    st.markdown(
+        "Aggregated PSU grant history across all financial years. Individual award details "
+        "are disclosed in the annual Remuneration Report."
+    )
+    st.markdown("")
+
+    st.markdown(
+        '<div class="callout-blue">'
+        "Fair values, performance outcomes and payout figures for FY20–FY24 will be populated "
+        "from the Remuneration Report. Unvested awards show current best estimates pending "
+        "RemCo determination."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    historic_table_html = """
+<table class="styled-table">
+  <thead>
+    <tr>
+      <th>Financial Year</th>
+      <th>PSU Type</th>
+      <th>Measurement Metric</th>
+      <th>Total Fair Value Awarded</th>
+      <th>Measurement Period</th>
+      <th>Vesting Date</th>
+      <th>Status</th>
+      <th>Performance %</th>
+      <th>Payout</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>FY20</td>
+      <td>Naspers Ecommerce CAGR PSU</td>
+      <td>Ecommerce CAGR vs peers</td>
+      <td>Placeholder</td>
+      <td>FY20–FY23</td>
+      <td>FY23</td>
+      <td>Vested ✓</td>
+      <td>Actual (TBC)</td>
+      <td>Actual (TBC)</td>
+    </tr>
+    <tr>
+      <td>FY21</td>
+      <td>Naspers Ecommerce CAGR PSU</td>
+      <td>Ecommerce CAGR vs peers</td>
+      <td>Placeholder</td>
+      <td>FY21–FY24</td>
+      <td>FY24</td>
+      <td>Vested ✓</td>
+      <td>Actual (TBC)</td>
+      <td>Actual (TBC)</td>
+    </tr>
+    <tr>
+      <td>FY22</td>
+      <td>Naspers + Prosus Ecommerce CAGR PSU</td>
+      <td>Ecommerce CAGR vs peers</td>
+      <td>Placeholder</td>
+      <td>FY22–FY25</td>
+      <td>FY25</td>
+      <td>Vested ✓</td>
+      <td>Actual (TBC)</td>
+      <td>Actual (TBC)</td>
+    </tr>
+    <tr>
+      <td>FY23</td>
+      <td>Prosus Ecommerce CAGR PSU</td>
+      <td>Ecommerce CAGR vs peers</td>
+      <td>Placeholder</td>
+      <td>FY23–FY26</td>
+      <td>FY26</td>
+      <td>Vested ✓</td>
+      <td>Actual (TBC)</td>
+      <td>Actual (TBC)</td>
+    </tr>
+    <tr>
+      <td>FY24</td>
+      <td>Prosus Ecommerce CAGR PSU</td>
+      <td>Ecommerce CAGR vs peers</td>
+      <td>Placeholder</td>
+      <td>FY24–FY27</td>
+      <td>FY27</td>
+      <td>Vested ✓</td>
+      <td>Actual (TBC)</td>
+      <td>Actual (TBC)</td>
+    </tr>
+    <tr style="background-color: #FFF9E6;">
+      <td>FY25</td>
+      <td>Naspers TSR PSU + Prosus TSR PSU</td>
+      <td>Group TSR vs peers</td>
+      <td>US$27.0m (Fabricio CEO award)</td>
+      <td>1 Jul 2024 – 30 Jun 2028</td>
+      <td>~Jun 2028</td>
+      <td>In flight ⏳</td>
+      <td>Best estimate (TBC)</td>
+      <td>Potential (TBC)</td>
+    </tr>
+    <tr style="background-color: #FFF9E6;">
+      <td>FY26</td>
+      <td>Naspers TSR PSU + Prosus TSR PSU</td>
+      <td>Group TSR vs peers</td>
+      <td>TBC (CFO award)</td>
+      <td>FY26–FY30</td>
+      <td>~FY30</td>
+      <td>In flight ⏳</td>
+      <td>Best estimate (TBC)</td>
+      <td>Potential (TBC)</td>
+    </tr>
+  </tbody>
+</table>
+"""
+    st.markdown(historic_table_html, unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="callout-yellow">'
+        "<strong>FY25 award — absolute underpin:</strong> The FY25 award includes an absolute underpin: "
+        "if Group TSR is negative over the measurement period, the award lapses entirely regardless of "
+        "peer ranking."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Section: Value creation
 # ---------------------------------------------------------------------------
 def show_value_creation():
@@ -777,18 +733,15 @@ def show_sidebar():
         "📋 What are PSUs?",
         "📈 Types of PSUs",
         "📐 How performance is measured",
-        "👥 Eligibility & current awards",
         "🌍 Peer group",
+        "👥 Eligibility",
         "⚖️ Malus & clawback",
+        "📅 Historic Performance",
         "💰 Value creation",
     ]
     section = st.sidebar.radio("", sections, label_visibility="collapsed")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown(
-        '<p style="color:#00D3AF;font-size:11px;">shares@prosus.com</p>',
-        unsafe_allow_html=True,
-    )
     authenticator.logout("Log out", "sidebar")
     return section
 
@@ -802,8 +755,8 @@ def main():
 
     # Header bar
     st.markdown(
-        '<div class="prosus-header">Prosus &nbsp;|&nbsp; PSU Board Onboarding '
-        '<span class="prosus-header-right">For Board Use Only</span></div>',
+        '<div class="prosus-header">Prosus &nbsp;|&nbsp; PSU Onboarding '
+        '<span class="prosus-header-right">Confidential</span></div>',
         unsafe_allow_html=True,
     )
 
@@ -824,12 +777,14 @@ def main():
             show_types_of_psus()
         elif "How performance" in section:
             show_how_performance_measured()
-        elif "Eligibility" in section:
-            show_eligibility()
         elif "Peer group" in section:
             show_peer_group()
+        elif "Eligibility" in section:
+            show_eligibility()
         elif "Malus" in section:
             show_malus_clawback()
+        elif "Historic" in section:
+            show_historic_performance()
         elif "Value creation" in section:
             show_value_creation()
 
