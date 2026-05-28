@@ -438,39 +438,35 @@ def show_how_performance_measured():
 # ---------------------------------------------------------------------------
 def show_peer_group():
     st.markdown("# Peer group")
-    st.markdown(
-        "The peer group is the benchmark against which Prosus's TSR (or Ecommerce CAGR) "
-        "is ranked. The composition of the peer group directly determines how many shares vest."
-    )
-    st.markdown("")
 
     st.markdown(
         """
 **Key governance rules:**
-- Approved by RemCo at the start of each measurement period — not changed mid-cycle
+- Approved by RemCo annually
 - Global technology and internet companies with broadly comparable business models
-- Minimum market capitalisation threshold applies (typically US$5bn+)
 - Delisted or acquired companies are removed; a replacement may be added at RemCo discretion
+- Additions measured over the full measurement period
 - TSR calculation uses 31-day trailing VWAP at start and end of the measurement period, in USD
 """
     )
 
     # FY26 current peer group only
-    with st.expander("📊 FY26 TSR peer group — 43 companies (current)", expanded=True):
+    with st.expander("📊 FY26 TSR peer group — ~48 companies (current)", expanded=True):
         st.caption(
             "Group TSR benchmark group — global technology, internet and ecommerce peers "
             "approved by RemCo for the post-CEO appointment period."
         )
         companies_fy26 = [
-            "Adyen", "LY Corporation", "Airbnb", "Match Group", "Alphabet",
-            "MercadoLibre", "Amazon", "Meta Platforms", "Auto Trader", "Ocado Group",
-            "Bajaj Finance", "One97 Communications (Paytm)", "Block", "PayPal",
-            "Booking Holdings", "Pinterest", "Chewy", "Rakuten Group", "Coupang",
-            "Sea Limited", "Deliveroo", "Shopify", "DoorDash", "Snap", "eBay",
-            "Uber", "Etsy", "Wayfair", "Expedia Group", "Zalando",
-            "FSN Ecommerce (Nykaa)", "Zillow Group", "IAC", "Zomato", "Grab",
-            "Ocado", "Just Eat Takeaway", "Chewy", "FSN Ecommerce",
-            "Zillow", "Auto Trader", "Bajaj Finance", "Pinterest",
+            "Adyen", "Airbnb", "Alibaba", "Alphabet", "Amazon",
+            "Auto Trader", "Baidu", "Bajaj Finance", "Bilibili", "Block",
+            "Booking Holdings", "Coupang", "Deliveroo", "DoorDash", "eBay",
+            "Etsy", "Expedia Group", "FSN Ecommerce (Nykaa)", "Grab", "IAC",
+            "JD.com", "Just Eat Takeaway", "Kakao", "Kuaishou", "LY Corporation",
+            "Match Group", "MercadoLibre", "Meituan", "Meta Platforms", "Naver",
+            "Netflix", "Ocado Group", "One97 Communications (Paytm)", "PayPal",
+            "Pinterest", "Rakuten Group", "Sea Limited", "Shopify", "Snap",
+            "Spotify", "Tencent", "Trip.com", "Uber", "Wayfair",
+            "Zalando", "Zillow Group", "Zomato",
         ]
         chips_html = " ".join(f'<span class="chip">{c}</span>' for c in companies_fy26)
         st.markdown(chips_html, unsafe_allow_html=True)
@@ -478,6 +474,28 @@ def show_peer_group():
             '<div class="callout-blue">The FY26 peer group reflects the shift to Group TSR '
             "and includes global internet, ecommerce and fintech peers. RemCo approves the "
             "peer group at the start of each measurement period.</div>",
+            unsafe_allow_html=True,
+        )
+
+    with st.expander("📊 FY26 Ecommerce CAGR peer group — 36 companies", expanded=False):
+        st.caption(
+            "Ecommerce CAGR benchmark group — approved by RemCo for the Ecommerce CAGR measurement period."
+        )
+        companies_ecagr = [
+            "Adyen", "Airbnb", "Alphabet", "Amazon", "Auto Trader",
+            "Bajaj Finance", "Block", "Booking Holdings", "Chewy", "Coupang",
+            "Deliveroo", "DoorDash", "eBay", "Etsy", "Expedia Group",
+            "FSN Ecommerce (Nykaa)", "Grab", "IAC", "JD.com", "LY Corporation",
+            "Match Group", "MercadoLibre", "Meta Platforms", "Ocado Group",
+            "One97 Communications (Paytm)", "PayPal", "Pinterest", "Rakuten Group",
+            "Sea Limited", "Shopify", "Snap", "Uber", "Wayfair",
+            "Zalando", "Zillow Group", "Zomato",
+        ]
+        chips_html_ec = " ".join(f'<span class="chip chip-teal">{c}</span>' for c in companies_ecagr)
+        st.markdown(chips_html_ec, unsafe_allow_html=True)
+        st.markdown(
+            '<div class="callout-blue">The Ecommerce CAGR peer group covers the pre- and post-Prosus listing periods (FY20–FY24). '
+            'Performance was measured by reference to the 3-year CAGR of the Ecommerce portfolio valuation.</div>',
             unsafe_allow_html=True,
         )
 
