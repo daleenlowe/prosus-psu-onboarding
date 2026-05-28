@@ -1,24 +1,53 @@
 """
 Prosus PSU Onboarding Dashboard
-Streamlit app with email whitelist authentication
+Streamlit app with email whitelist + password authentication
 """
 
+import os
 import streamlit as st
 import pandas as pd
-import os
 
 # ---------------------------------------------------------------------------
-# Authentication setup — email whitelist
+# Authentication setup — email whitelist + shared password
 # ---------------------------------------------------------------------------
-def load_whitelist():
-    """Load allowed email addresses from users.txt"""
-    whitelist_path = os.path.join(os.path.dirname(__file__), "users.txt")
-    if os.path.exists(whitelist_path):
-        with open(whitelist_path) as f:
-            return [line.strip() for line in f if line.strip()]
-    return []
+SHARED_PASSWORD = "Prosus2026!"
+USERS_FILE = os.path.join(os.path.dirname(__file__), "users.txt")
 
-ALLOWED_EMAILS = load_whitelist()
+
+def load_allowed_emails():
+    try:
+        with open(USERS_FILE, "r") as f:
+            return {line.strip().lower() for line in f if line.strip()}
+    except FileNotFoundError:
+        return set()
+
+
+def check_login(email, password):
+    allowed = load_allowed_emails()
+    return email.strip().lower() in allowed and password == SHARED_PASSWORD
+
+
+def show_login():
+    st.markdown("<br>" * 3, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(
+            '<div style="background:#081A54;padding:32px;border-radius:10px;border-top:4px solid #00D3AF">'
+            '<h3 style="color:white;text-align:center;margin-bottom:24px">Prosus | PSU Onboarding</h3>',
+            unsafe_allow_html=True
+        )
+        email = st.text_input("Email address", placeholder="your.name@prosus.com", key="login_email")
+        password = st.text_input("Password", type="password", key="login_password")
+
+        if st.button("Log in", use_container_width=True):
+            if check_login(email, password):
+                st.session_state["authenticated"] = True
+                st.session_state["user_email"] = email.strip().lower()
+                st.rerun()
+            else:
+                st.error("Email not recognised or incorrect password.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ---------------------------------------------------------------------------
 # Page config — must be FIRST Streamlit call
@@ -243,7 +272,7 @@ def show_types_of_psus():
     </tr>
   </thead>
   <tbody>
-    <tr><td style="font-weight:bold">Plan</td><td>Naspers RSP Trust / Prosus Share Award Plan</td><td>Naspers RSP Trust & Prosus Share Award Plan</td></tr>
+    <tr><td style="font-weight:bold">Plan</td><td>Naspers RSP Trust / Prosus Share Award Plan</td><td>Naspers RSP Trust &amp; Prosus Share Award Plan</td></tr>
     <tr><td style="font-weight:bold">Settlement</td><td>Naspers Class N shares / Prosus Class N shares</td><td>Combination of Naspers and Prosus Class N shares</td></tr>
     <tr><td style="font-weight:bold">Performance measure</td><td>3-year Ecommerce CAGR of portfolio (ex-Tencent) vs peer group</td><td>Group TSR (Naspers + Prosus combined) vs peer group</td></tr>
     <tr><td style="font-weight:bold">Measurement period</td><td>3 years</td><td>4 years (extendable to 5 if peer avg TSR ≤ −10%)</td></tr>
@@ -743,8 +772,8 @@ def show_sidebar():
 
     st.sidebar.markdown("---")
     if st.sidebar.button("Logout"):
-        st.session_state.authenticated = False
-        st.session_state.user_email = ""
+        st.session_state["authenticated"] = False
+        st.session_state["user_email"] = ""
         st.rerun()
     return section
 
@@ -763,46 +792,33 @@ def main():
         unsafe_allow_html=True,
     )
 
-    # Auth — email whitelist
+    # Auth — email whitelist + shared password
     if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-        st.session_state.user_email = ""
+        st.session_state["authenticated"] = False
 
-    if not st.session_state.authenticated:
-        st.markdown("## Login")
-        email = st.text_input("Enter your email address", key="login_email")
-        if st.button("Sign In"):
-            if email in ALLOWED_EMAILS:
-                st.session_state.authenticated = True
-                st.session_state.user_email = email
-                st.rerun()
-            else:
-                st.error("Access denied. Your email is not on the whitelist.")
-        st.info("Contact shares@prosus.com for access.")
-        return
+    if not st.session_state["authenticated"]:
+        show_login()
+        st.stop()
 
-    name = st.session_state.user_email
+    # Show sidebar nav and route to section
+    section = show_sidebar()
 
-    if True:
-        # Show sidebar nav and route to section
-        section = show_sidebar()
-
-        if "What are PSUs" in section:
-            show_what_are_psus()
-        elif "Types of PSUs" in section:
-            show_types_of_psus()
-        elif "How performance" in section:
-            show_how_performance_measured()
-        elif "Peer group" in section:
-            show_peer_group()
-        elif "Eligibility" in section:
-            show_eligibility()
-        elif "Malus" in section:
-            show_malus_clawback()
-        elif "Historic" in section:
-            show_historic_performance()
-        elif "Value creation" in section:
-            show_value_creation()
+    if "What are PSUs" in section:
+        show_what_are_psus()
+    elif "Types of PSUs" in section:
+        show_types_of_psus()
+    elif "How performance" in section:
+        show_how_performance_measured()
+    elif "Peer group" in section:
+        show_peer_group()
+    elif "Eligibility" in section:
+        show_eligibility()
+    elif "Malus" in section:
+        show_malus_clawback()
+    elif "Historic" in section:
+        show_historic_performance()
+    elif "Value creation" in section:
+        show_value_creation()
 
 
 if __name__ == "__main__":
