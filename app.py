@@ -742,7 +742,10 @@ def show_sidebar():
     section = st.sidebar.radio("", sections, label_visibility="collapsed")
 
     st.sidebar.markdown("---")
-    authenticator.logout("Log out", "sidebar")
+    if st.sidebar.button("Logout"):
+        st.session_state.authenticated = False
+        st.session_state.user_email = ""
+        st.rerun()
     return section
 
 
@@ -760,14 +763,27 @@ def main():
         unsafe_allow_html=True,
     )
 
-    # Auth
-    name, authentication_status, username = authenticator.login("Login", "main")
+    # Auth — email whitelist
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+        st.session_state.user_email = ""
 
-    if authentication_status is False:
-        st.error("Incorrect username or password.")
-    elif authentication_status is None:
-        st.info("Please enter your login credentials above.")
-    elif authentication_status:
+    if not st.session_state.authenticated:
+        st.markdown("## Login")
+        email = st.text_input("Enter your email address", key="login_email")
+        if st.button("Sign In"):
+            if email in ALLOWED_EMAILS:
+                st.session_state.authenticated = True
+                st.session_state.user_email = email
+                st.rerun()
+            else:
+                st.error("Access denied. Your email is not on the whitelist.")
+        st.info("Contact shares@prosus.com for access.")
+        return
+
+    name = st.session_state.user_email
+
+    if True:
         # Show sidebar nav and route to section
         section = show_sidebar()
 
